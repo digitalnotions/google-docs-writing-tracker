@@ -43,6 +43,8 @@ var MODE = loadConfigData("Word Count Mode");
 /* Email customization */
 var EMAIL_SUBJECT = loadConfigData("Daily Writing Subject");
 
+/* Backup file suffix customization */
+var BACKUP_SUFFIX = loadConfigData("Backup File Suffix");
   
 
 function find(value, range) {
@@ -79,7 +81,7 @@ function loadConfigData(setting) {
 
 function testHarness()
 {
-  getDailyWordCount(8, 1, 2014);
+  getDailyWordCount(8, 3, 2014);
 }
 
 function initializeWritingStats() 
@@ -309,11 +311,12 @@ function getWritingTime(rt_date) {
 function backupFile(id) {
   var folder = DocsList.getFolder(SNAPSHOT_FOLDER);
   var orig = DocsList.getFileById(id);
-  Logger.log("  -> Backing up " + orig.getName() + " to " + folder.getName() + "...");
-  if (doesFileExistByName(SNAPSHOT_FOLDER, orig.getName())){
+  var backupName = orig.getName() + BACKUP_SUFFIX;
+  Logger.log("  -> Backing up " + orig.getName() + " to " + folder.getName() + "/" + backupName + "...");
+  if (doesFileExistByName(SNAPSHOT_FOLDER, backupName)){
     var files = folder.getFiles();
     for (f in files) {
-      if (files[f].getName() == orig.getName()) {
+      if (files[f].getName() == backupName) {
         // ASSERT: we have a winner!
         files[f].setTrashed(true);
         Logger.log("  -> Removed older version to trash...");
@@ -322,9 +325,9 @@ function backupFile(id) {
     }
   }
   /* Create the new file, add it to the almanac folder and remove from the root folder */
-  var newFile = orig.makeCopy(orig.getName());
+  var newFile = orig.makeCopy(backupName);
   newFile.addToFolder(folder);
-  newfile.removeFromFolder(DocsList.getRootFolder());
+  newFile.removeFromFolder(DocsList.getRootFolder());
   Logger.log("  -> Backed up original file.");
 
 }
@@ -344,19 +347,19 @@ function doesFileExistByName(folder, name) {
 
 function getFileDiff(id) {
   var doc = DocumentApp.openById(id);
-  var name = doc.getName();
+  var backupName = doc.getName() + BACKUP_SUFFIX;
   var doc1 = doc.getText();
   var count = getWordCount(doc1);
   var diff = "";
   
   // Is there a file from which to compare?
-  Logger.log("  -> Checking file diff for " + name + "...");
+  Logger.log("  -> Checking file diff for " + backupName + "...");
   var folder = DocsList.getFolder(SNAPSHOT_FOLDER);
-  if (doesFileExistByName(SNAPSHOT_FOLDER, name)) {
+  if (doesFileExistByName(SNAPSHOT_FOLDER, backupName)) {
     Logger.log("  -> An earlier version of the file exists...");
     var files = folder.getFiles();
     for (f in files) {
-      if (files[f].getName() == name) {
+      if (files[f].getName() == backupName) {
         var prev_doc = DocumentApp.openById(files[f].getId());
         var doc2 = prev_doc.getText();
         var diff = WDiffString(doc2, doc1)     
